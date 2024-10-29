@@ -173,6 +173,8 @@ def genetic_algorithm():
     # Calcular fx
     fx_values = calculate_fx(population)
     print("\nValores de fx:", fx_values)
+    numGen = 0
+    contMut = 1
 
     while (min(fx_values) != 0):
         # Calcular fitness
@@ -215,13 +217,18 @@ def genetic_algorithm():
         print(" ")
 
         # Aplicar mutaciones y obtener la nueva población
-        new_population = apply_mutation(population, num_mutations)
-        print("\nNueva poblacion (despues de la mutacion):", new_population)
+        if(contMut == 5):
+            new_population = apply_mutation(population, num_mutations)
+            print("\nNueva poblacion (despues de la mutacion):", new_population)
+            contMut = 0
         
         # Calcular fx de la nueva población
         fx_values = calculate_fx(new_population)
         print("\nValores de fx:", fx_values)
+        contMut+=1
 
+        numGen += 1
+    print(numGen)
 
 if __name__ == "__main__":
     genetic_algorithm()
