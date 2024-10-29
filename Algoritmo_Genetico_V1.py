@@ -3,15 +3,14 @@ import math
 
 #Inicializacion de la poblacion
 def initialize_population(num_individuals):
-    # Valores de la tabla proporcionada
-    population = [
-        [12, 5, 23, 8],  # Individuo 1
-        [2, 21, 18, 3],  # Individuo 2
-        [10, 4, 13, 14], # Individuo 3
-        [20, 1, 10, 6],  # Individuo 4
-        [1, 4, 13, 19],  # Individuo 5
-        [20, 5, 17, 1]   # Individuo 6
-    ]
+    population=[]
+    # Valores de la tabla proporcionada ahora se dan el número de individuos
+    population = [[random.randint(1, 30) for _ in range(4)] for _ in range(num_individuals)]
+
+    #se imprimen los valores de cada individuo
+    for pop in population:
+        print(pop)
+        
     return population
 
 #Calculo de la fx
@@ -19,7 +18,7 @@ def calculate_fx(population):
     fx_values = []
     for individual in population:
         a, b, c, d = individual
-        fx = (a + 2*b + 3*c + 4*d) - 30
+        fx = ((a + 2*b + 3*c + 4*d) - 30)
         fx_values.append(fx)
     return fx_values
 
@@ -29,7 +28,7 @@ def calculate_fitness(population):
     for individual in population:
         a, b, c, d = individual
         fx = (a + 2*b + 3*c + 4*d) - 30
-        fitness = 1/(1+fx)
+        fitness = 1/(1+abs(fx))
         fitness_values.append(fitness)
     return fitness_values
 
@@ -166,61 +165,70 @@ def apply_mutation(population, num_mutations):
 
 # Ejecución del algoritmo genético
 def genetic_algorithm():
-    num_individuals = 6  # 6 individuos
+    num_individuals = int(input("NUMERO DE INDIVIDUOS: ")) # se solicitan el número de individuos
     print("\nNumero de individuos:", num_individuals)
-    
     # Inicializacion
     population = initialize_population(num_individuals)
     print("\nPoblacion inicial:", population)
-    
     # Calcular fx
     fx_values = calculate_fx(population)
     print("\nValores de fx:", fx_values)
+    numGen = 0
+    contMut = 1
 
-    # Calcular fitness
-    fitness_values = calculate_fitness(population)
-    print("\nValores de fitness:", fitness_values)
-    
-    # Calcular probabilidades
-    probabilities = calculate_probabilities(fitness_values)
-    print("\nProbabilidades de seleccion:", probabilities)
+    while (min(fx_values) != 0):
+        # Calcular fitness
+        fitness_values = calculate_fitness(population)
+        print("\nValores de fitness:", fitness_values)
+        
+        # Calcular probabilidades
+        probabilities = calculate_probabilities(fitness_values)
+        print("\nProbabilidades de seleccion:", probabilities)
 
-    # Acumulacion de la probabilidad de seleccion
-    accumulated_probabilities = accumulate_probabilities(probabilities)
-    print("\nProbabilidades acumuladas de seleccion:", accumulated_probabilities)
+        # Acumulacion de la probabilidad de seleccion
+        accumulated_probabilities = accumulate_probabilities(probabilities)
+        print("\nProbabilidades acumuladas de seleccion:", accumulated_probabilities)
 
-    # Random [i]
-    random_values = random_probabilities(population)
-    print("\nRandom [i] (0-1):", random_values)
+        # Random [i]
+        random_values = random_probabilities(population)
+        print("\nRandom [i] (0-1):", random_values)
 
-    # Rango de seleccion segun la acumulacion de la probabilidad de seleccion y random [i]
-    selected_individuals = select_individuals(population, accumulated_probabilities, random_values)
-    print("\nIndividuos seleccionados:", selected_individuals)
+        # Rango de seleccion segun la acumulacion de la probabilidad de seleccion y random [i]
+        selected_individuals = select_individuals(population, accumulated_probabilities, random_values)
+        print("\nIndividuos seleccionados:", selected_individuals)
 
-    # Asignacion de nuevos valores a los individuos en la poblacion
-    population = replace_individuals(population, selected_individuals)
-    print("\nPoblacion actualizada:", population)
+        # Asignacion de nuevos valores a los individuos en la poblacion
+        population = replace_individuals(population, selected_individuals)
+        print("\nPoblacion actualizada:", population)
 
-    # Random [i] para crossover
-    random_values2 = random_probabilities(population)
-    print("\nRandom [i] (0-1) para crossover:", random_values2)
+        # Random [i] para crossover
+        random_values2 = random_probabilities(population)
+        print("\nRandom [i] (0-1) para crossover:", random_values2)
 
-    # Selección de individuos para crossover con umbral
-    selected_for_crossover = select_for_crossover(population, random_values2)
-    print("\nIndividuos seleccionados para crossover: ", selected_for_crossover)
+        # Selección de individuos para crossover con umbral
+        selected_for_crossover = select_for_crossover(population, random_values2)
+        print("\nIndividuos seleccionados para crossover: ", selected_for_crossover)
 
-    # Realizar el crossover
-    paired_individuals, crossover_points, new_population = perform_asymmetric_crossover(population, selected_for_crossover)
-    print("\nPares seleccionados para crossover:", paired_individuals)
-    print("\nPuntos de corte por cada par:", crossover_points)
-    print("\nPoblacion despues del crossover:", new_population)
-    print(" ")
+        # Realizar el crossover
+        paired_individuals, crossover_points, new_population = perform_asymmetric_crossover(population, selected_for_crossover)
+        print("\nPares seleccionados para crossover:", paired_individuals)
+        print("\nPuntos de corte por cada par:", crossover_points)
+        print("\nPoblacion despues del crossover:", new_population)
+        print(" ")
 
-    # Aplicar mutaciones y obtener la nueva población
-    new_population = apply_mutation(population, num_mutations)
-    print("\nNueva poblacion (despues de la mutacion):", new_population)
-    #for chrom in new_population: print(chrom)
+        # Aplicar mutaciones y obtener la nueva población
+        if(contMut == 5):
+            new_population = apply_mutation(population, num_mutations)
+            print("\nNueva poblacion (despues de la mutacion):", new_population)
+            contMut = 0
+        
+        # Calcular fx de la nueva población
+        fx_values = calculate_fx(new_population)
+        print("\nValores de fx:", fx_values)
+        contMut+=1
 
+        numGen += 1
+    print(numGen)
 
 if __name__ == "__main__":
     genetic_algorithm()
