@@ -1,5 +1,12 @@
 import random
 import math
+import tkinter as tk
+from tkinter import scrolledtext
+import threading
+import time
+
+enPausa = False
+corriendo = True
 
 #Inicializacion de la poblacion
 def initialize_population(num_individuals):
@@ -153,7 +160,9 @@ def apply_mutation(population, num_mutations):
         # Mostrar información de mutación
         #print(f"Mutating chromosome {chrom_index + 1}, gene {gene_index + 1}: original value = {original_value}, new value = {new_value}")
         print(f"Mutando cromosoma {chrom_index + 1}, gen {gene_index + 1}: valor original = {original_value}, nuevo valor = {new_value}")
-
+        mutation_label.config(
+            text=f"Mutando cromosoma {chrom_index + 1}, gen {gene_index + 1}: valor original = {original_value}, nuevo valor = {new_value}"
+        )
 
         # Aplicar mutación
         new_population[chrom_index][gene_index] = new_value
@@ -230,5 +239,161 @@ def genetic_algorithm():
         numGen += 1
     print(numGen)
 
-if __name__ == "__main__":
-    genetic_algorithm()
+def genetic_algorithm_GUI():
+    global enPausa, corriendo
+    num_individuals = int(entry_num_indivials.get()) # se solicitan el número de individuos
+    log_text.insert(tk.END, f"Numero de individuos: {num_individuals}\n", "info")
+    log_text.yview(tk.END)
+    # Inicializacion
+    population = initialize_population(num_individuals)
+    log_text.insert(tk.END, f"Poblacion inicial: {population}\n", "dato")
+    log_text.yview(tk.END)
+    # Calcular fx
+    fx_values = calculate_fx(population)
+    log_text.insert(tk.END, f"Valores de fx: {fx_values}\n", "dato")
+    log_text.yview(tk.END)
+    numGen = 0
+    contMut = 1
+
+    while min(fx_values) != 0 and corriendo:
+        while enPausa and corriendo:
+            time.sleep(0.1)
+
+        # Calcular fitness
+        fitness_values = calculate_fitness(population)
+        log_text.insert(tk.END, f"Valores de fitness: {fitness_values}\n", "info")
+        log_text.yview(tk.END)
+        
+        # Calcular probabilidades
+        probabilities = calculate_probabilities(fitness_values)
+        log_text.insert(tk.END, f"Probabilidades de seleccion: {probabilities}\n", "dato")
+        log_text.yview(tk.END)
+
+        # Acumulacion de la probabilidad de seleccion
+        accumulated_probabilities = accumulate_probabilities(probabilities)
+        log_text.insert(tk.END, f"Probabilidades acumuladas de seleccion: {accumulated_probabilities}\n", "info")
+        log_text.yview(tk.END)
+
+        # Random [i]
+        random_values = random_probabilities(population)
+        log_text.insert(tk.END, f"Random [i] (0-1): {random_values}\n", "dato")
+        log_text.yview(tk.END)
+
+        # Rango de seleccion segun la acumulacion de la probabilidad de seleccion y random [i]
+        selected_individuals = select_individuals(population, accumulated_probabilities, random_values)
+        log_text.insert(tk.END, f"Individuos seleccionados: {selected_individuals}\n", "info")
+        log_text.yview(tk.END)
+
+        # Asignacion de nuevos valores a los individuos en la poblacion
+        population = replace_individuals(population, selected_individuals)
+        log_text.insert(tk.END, f"Poblacion actualizada: {population}\n", "dato")
+        log_text.yview(tk.END)
+
+        # Random [i] para crossover
+        random_values2 = random_probabilities(population)
+        log_text.insert(tk.END, f"Random [i] (0-1) para crossover: {random_values2}\n", "info")
+        log_text.yview(tk.END)
+
+        # Selección de individuos para crossover con umbral
+        selected_for_crossover = select_for_crossover(population, random_values2)
+        log_text.insert(tk.END, f"Individuos seleccionados para crossover: {selected_for_crossover}\n", "dato")
+        log_text.yview(tk.END)
+
+        # Realizar el crossover
+        paired_individuals, crossover_points, new_population = perform_asymmetric_crossover(population, selected_for_crossover)
+        log_text.insert(tk.END, f"Pares seleccionados para crossover: {paired_individuals}\n", "dato")
+        log_text.yview(tk.END)
+        log_text.insert(tk.END, f"Puntos de corte por cada par: {crossover_points}\n", "dato")
+        log_text.yview(tk.END)
+        log_text.insert(tk.END, f"Poblacion despues del crossover: {new_population}\n\n", "info")
+        log_text.yview(tk.END)
+        #log_text.insert(" ")
+
+        # Aplicar mutaciones y obtener la nueva población
+        if(contMut == 5):
+            new_population = apply_mutation(population, num_mutations)
+            log_text.insert(tk.END, f"Nueva poblacion (despues de la mutacion): {new_population}\n", "dato")
+            log_text.yview(tk.END)
+            contMut = 0
+        
+        # Calcular fx de la nueva población
+        fx_values = calculate_fx(new_population)
+        log_text.insert(tk.END, f"Valores de fx: {fx_values}\n", "info")
+        log_text.yview(tk.END)
+        contMut+=1
+        numGen += 1
+
+    if corriendo:
+        log_text.insert(tk.END, f"Generaciones totales: {numGen}\n", "final")
+        log_text.yview(tk.END)
+
+def iniciar_algoritmo():
+    global enPausa, corriendo
+    enPausa = False
+    corriendo = True
+    threading.Thread(target=genetic_algorithm_GUI, daemon=True).start()
+    mutation_label.config(text="", fg="purple")
+    pause_button.config(state=tk.ACTIVE)
+    cancel_button.config(state=tk.ACTIVE)
+
+def cambiarPausa():
+    global enPausa
+    enPausa = not enPausa
+    pause_button.config(text="Reanudar" if enPausa else "Pausar")
+
+def cancelarAlgoritmo():
+    global corriendo, enPausa
+    enPausa = True
+    corriendo = False
+    log_text.delete(1.0, tk.END)
+    mutation_label.config(text="ALGORITMO CANCELADO", fg="red")
+    pause_button.config(state=tk.DISABLED)
+    cancel_button.config(state=tk.DISABLED)
+
+window = tk.Tk()
+window.title("Algoritmo Genético")
+window.iconbitmap("assets/geneticAlgorithmIcon.ico")
+window.geometry("950x750")
+
+window.update_idletasks()
+window_width = 950
+window_height = 750
+screen_width = window.winfo_screenwidth()
+screen_height = window.winfo_screenheight()
+x = (screen_width // 2) - (window_width // 2)
+y = (screen_height // 2) - (window_height // 2)
+window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+label_num_indivials = tk.Label(window, text="Numero de individuos:")
+label_num_indivials.pack()
+entry_num_indivials = tk.Entry(window)
+entry_num_indivials.pack()
+
+button_frame = tk.Frame(window)
+button_frame.pack(pady=5)
+
+run_button = tk.Button(button_frame, text="Ejecutar algoritmo genetico", command=iniciar_algoritmo)
+run_button.grid(row=0, column=0, padx=8)
+
+pause_button = tk.Button(button_frame, text="Pausar", command=cambiarPausa, state=tk.DISABLED)
+pause_button.grid(row=0, column=1, padx=8)
+
+cancel_button = tk.Button(button_frame, text="Cancelar",command=cancelarAlgoritmo, state=tk.DISABLED)
+cancel_button.grid(row=0, column=2, padx=8)
+
+log_text = scrolledtext.ScrolledText(window, width=110, height=35)
+log_text.pack()
+
+mutation_label = tk.Label(window, text="", font=("Arial", 10), fg="purple")
+mutation_label.pack(pady=5)
+
+log_text.tag_configure("info", foreground="black")
+log_text.tag_configure("dato", foreground="blue")
+log_text.tag_configure("estatus", foreground="red")
+log_text.tag_configure("final", foreground="green")
+
+window.mainloop()
+
+
+#if __name__ == "__main__":
+#    genetic_algorithm()
